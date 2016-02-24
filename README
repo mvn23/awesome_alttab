@@ -29,6 +29,8 @@ INSTALLATION:
    alttab.settings.client_opacity_value = 0.5,         -- alpha-value
    alttab.settings.client_opacity_delay = 150,         -- delay in ms
 
+   alttab.settings.cycle_all_tags = true               -- cycle all tags on the current screen
+
 4) Add key-bindings:
    On my particular system, and I guess most, Shift-Tab is captured by the keygrabber as a 
    single key, namely "ISO_LEFT_TAB". Therefore, this is what my keybindings look like:

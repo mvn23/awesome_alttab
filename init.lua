@@ -35,6 +35,8 @@ local settings = {
    client_opacity = false,
    client_opacity_value = 0.5,
    client_opacity_delay = 150,
+
+   cycle_all_tags = true,
 }
 
 -- Create a wibox to contain all the client-widgets
@@ -280,6 +282,27 @@ local function cycle(altTabTable, altTabIndex, dir)
       clientOpacity(altTabTable, altTabIndex)
    end
 
+   local c = altTabTable[altTabIndex]
+   if settings.cycle_all_tags then
+      local ctags = c:tags()
+      if #ctags > 1 then
+         local t = awful.tag.selected(mouse.screen)
+         local keeptag = false
+         for i = 1, #ctags do
+            if t == ctags[i] then
+               keeptag = true
+               break
+            end
+         end
+         if not keeptag then
+            awful.tag.viewonly(ctags[1])
+         end
+      else
+         awful.tag.viewonly(ctags[1])
+      end
+   end
+   c:raise()
+
    return altTabIndex
 end
 
@@ -309,8 +332,8 @@ local function switch(dir, alt, tab, shift_tab)
 
    local t = awful.tag.selected(s)
    local all = client.get(s)
+   local allothers = {}
    
-
    for i = 1, #all do
       local c = all[i]
       local ctags = c:tags();
@@ -324,23 +347,51 @@ local function switch(dir, alt, tab, shift_tab)
 	 end
       end
 
-      if isCurrentTag then
+      local alreadyAdded = false
+      for k = 1, #altTabTable do
+         if altTabTable[k] == c then
+            alreadyAdded = true
+	    break
+	 end
+      end
+
+      if not alreadyAdded then
+         if isCurrentTag then
 	 -- check if client is already in the history
 	 -- if not, add it
-	 local addToTable = true
-	 for k = 1, #altTabTable do
-	    if altTabTable[k] == c then
-	       addToTable = false
-	       break
-	    end
-	 end
 
 
-	 if addToTable then
 	    table.insert(altTabTable, c)
 	    table.insert(altTabMinimized, c.minimized)
 	    table.insert(altTabOpacity, c.opacity)
+         else
+            table.insert(allothers, c)
 	 end
+      end
+   end
+
+   if settings.cycle_all_tags then
+      local numtags = 0
+      for _ in pairs(awful.tag.gettags(s)) do numtags = numtags + 1 end
+      if #allothers ~= 0 and numtags > 1 then
+         local nexttagidx = awful.tag.getidx(t) + 1
+         while true do
+            if nexttagidx > numtags then
+               nexttagidx = 1
+            end
+            if nexttagidx == awful.tag.getidx(t) then
+               break
+            end
+            for i = 1, #allothers do
+               local c = allothers[i]
+               if awful.tag.getidx(c:tags()[1]) == nexttagidx then
+                  table.insert(altTabTable, c)
+                  table.insert(altTabMinimized, c.minimized)
+                  table.insert(altTabOpacity, c.opacity)
+               end
+            end
+            nexttagidx = nexttagidx + 1
+         end
       end
    end
 
@@ -375,7 +426,6 @@ local function switch(dir, alt, tab, shift_tab)
 				       clientOpacity(altTabTable, altTabIndex)
    end)
    opacityDelayTimer:start()
-
 
    -- Now that we have collected all windows, we should run a keygrabber
    -- as long as the user is alt-tabbing:
